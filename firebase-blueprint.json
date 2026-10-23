@@ -1,0 +1,394 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user account and profile settings",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the user"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 256,
+          "description": "Email address of the user"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Display name of the user"
+        },
+        "avatar": {
+          "type": "string",
+          "maxLength": 1024,
+          "description": "Avatar image URL"
+        },
+        "emailNotif": {
+          "type": "boolean",
+          "description": "Whether email notifications are enabled"
+        },
+        "streamAlerts": {
+          "type": "boolean",
+          "description": "Whether stream health alerts are enabled"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp"
+        }
+      },
+      "required": ["uid", "email", "name", "avatar", "emailNotif", "streamAlerts", "createdAt", "updatedAt"]
+    },
+    "StreamConfig": {
+      "title": "StreamConfig",
+      "description": "Configuration and status for a user's live stream destination",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "streamName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "destinationUrl": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "streamKey": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["camera", "screen", "video", "playlist"]
+        },
+        "resolution": {
+          "type": "string",
+          "enum": ["720p", "1080p"]
+        },
+        "fps": {
+          "type": "string",
+          "enum": ["30", "60"]
+        },
+        "bitrate": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "audioBitrate": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "isLandscape": {
+          "type": "boolean"
+        },
+        "isLive": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Ready", "Connecting", "Live", "Stopped", "Error"]
+        },
+        "duration": {
+          "type": "number"
+        },
+        "health": {
+          "type": "string",
+          "enum": ["Excellent", "Good", "Poor", "Disconnected"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "streamName", "destinationUrl", "streamKey", "sourceType", "resolution", "fps", "bitrate", "audioBitrate", "isLandscape", "isLive", "status", "duration", "health", "createdAt", "updatedAt"]
+    },
+    "VideoItem": {
+      "title": "VideoItem",
+      "description": "Uploaded video metadata for a user",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "filename": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "thumbnail": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "duration": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "size": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "uploadedAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "title", "filename", "thumbnail", "duration", "size", "uploadedAt", "createdAt"]
+    },
+    "UpcomingStream": {
+      "title": "UpcomingStream",
+      "description": "Scheduled upcoming stream event",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "scheduledTime": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "destination": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "title", "scheduledTime", "destination", "category", "createdAt"]
+    },
+    "StreamHistoryRecord": {
+      "title": "StreamHistoryRecord",
+      "description": "Completed or interrupted stream history record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "startTime": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "endTime": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "duration": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "destination": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Completed", "Interrupted", "Failed"]
+        },
+        "recordingUrl": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "title", "startTime", "endTime", "duration", "destination", "status", "recordingUrl", "createdAt"]
+    },
+    "PlaylistConfig": {
+      "title": "PlaylistConfig",
+      "description": "Loop and playlist configuration for a user",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "loopEnabled": {
+          "type": "boolean"
+        },
+        "selectedVideoIds": {
+          "type": "array",
+          "maxLength": 50
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "loopEnabled", "selectedVideoIds", "createdAt", "updatedAt"]
+    },
+    "YouTubeOAuthCredential": {
+      "title": "YouTubeOAuthCredential",
+      "description": "Encrypted/isolated OAuth 2.0 credentials and granted scopes for a user's YouTube Live streaming integration",
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["youtube"]
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "channelId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "channelTitle": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "channelEmail": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 256
+        },
+        "accessToken": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "refreshToken": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "tokenType": {
+          "type": "string",
+          "enum": ["Bearer"]
+        },
+        "scopes": {
+          "type": "array",
+          "maxLength": 10
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "isConnected": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "provider",
+        "userId",
+        "channelId",
+        "channelTitle",
+        "channelEmail",
+        "accessToken",
+        "refreshToken",
+        "tokenType",
+        "scopes",
+        "expiresAt",
+        "isConnected",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "UserProfile" },
+      "description": "Stores isolated user profile and notification preferences"
+    },
+    "/users/{userId}/streams/{streamId}": {
+      "schema": { "$ref": "StreamConfig" },
+      "description": "Stores stream configurations and credentials owned by the user"
+    },
+    "/users/{userId}/videos/{videoId}": {
+      "schema": { "$ref": "VideoItem" },
+      "description": "Stores uploaded video metadata owned by the user"
+    },
+    "/users/{userId}/upcoming/{upcomingId}": {
+      "schema": { "$ref": "UpcomingStream" },
+      "description": "Stores scheduled upcoming streams owned by the user"
+    },
+    "/users/{userId}/history/{historyId}": {
+      "schema": { "$ref": "StreamHistoryRecord" },
+      "description": "Stores past stream history records owned by the user"
+    },
+    "/users/{userId}/playlists/{playlistId}": {
+      "schema": { "$ref": "PlaylistConfig" },
+      "description": "Stores loop and playlist configurations owned by the user"
+    },
+    "/users/{userId}/oauth_credentials/{providerId}": {
+      "schema": { "$ref": "YouTubeOAuthCredential" },
+      "description": "Stores isolated OAuth 2.0 tokens and granted live streaming scopes owned by the user"
+    }
+  }
+}
+

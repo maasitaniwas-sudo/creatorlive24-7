@@ -1,0 +1,379 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection test document
+    match /test/connection {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
+    // Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // Validation Blueprints
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'name', 'avatar', 'emailNotif', 'streamAlerts', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'name', 'avatar', 'emailNotif', 'streamAlerts', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.uid == request.auth.uid
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 256
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 100
+        && data.avatar is string && data.avatar.size() <= 1024
+        && data.emailNotif is bool
+        && data.streamAlerts is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStreamConfig(data) {
+      return data.keys().hasAll(['id', 'userId', 'streamName', 'destinationUrl', 'streamKey', 'sourceType', 'resolution', 'fps', 'bitrate', 'audioBitrate', 'isLandscape', 'isLive', 'status', 'duration', 'health', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'streamName', 'destinationUrl', 'streamKey', 'channelId', 'sourceType', 'resolution', 'fps', 'bitrate', 'audioBitrate', 'isLandscape', 'isLive', 'status', 'duration', 'health', 'createdAt', 'updatedAt'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128 && data.id.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId == request.auth.uid
+        && data.streamName is string && data.streamName.size() >= 1 && data.streamName.size() <= 120
+        && data.destinationUrl is string && data.destinationUrl.size() <= 512
+        && data.streamKey is string && data.streamKey.size() <= 256
+        && (!('channelId' in data) || (data.channelId is string && data.channelId.size() >= 1 && data.channelId.size() <= 128))
+        && data.sourceType is string && data.sourceType.size() <= 32 && data.sourceType in ['camera', 'screen', 'video', 'playlist']
+        && data.resolution is string && data.resolution.size() <= 16 && data.resolution in ['720p', '1080p']
+        && data.fps is string && data.fps.size() <= 16 && data.fps in ['30', '60']
+        && data.bitrate is string && data.bitrate.size() <= 64
+        && data.audioBitrate is string && data.audioBitrate.size() <= 64
+        && data.isLandscape is bool
+        && data.isLive is bool
+        && data.status is string && data.status.size() <= 32 && data.status in ['Ready', 'Connecting', 'Live', 'Stopped', 'Error']
+        && data.duration is number && data.duration >= 0
+        && data.health is string && data.health.size() <= 32 && data.health in ['Excellent', 'Good', 'Poor', 'Disconnected']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidVideoItem(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'filename', 'thumbnail', 'duration', 'size', 'uploadedAt', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'title', 'filename', 'thumbnail', 'duration', 'size', 'uploadedAt', 'createdAt'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128 && data.id.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.filename is string && data.filename.size() >= 1 && data.filename.size() <= 256
+        && data.thumbnail is string && data.thumbnail.size() <= 1024
+        && data.duration is string && data.duration.size() <= 32
+        && data.size is string && data.size.size() <= 32
+        && data.uploadedAt is string && data.uploadedAt.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    function isValidUpcomingStream(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'scheduledTime', 'destination', 'category', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'title', 'scheduledTime', 'destination', 'category', 'createdAt'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128 && data.id.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.scheduledTime is string && data.scheduledTime.size() >= 1 && data.scheduledTime.size() <= 64
+        && data.destination is string && data.destination.size() >= 1 && data.destination.size() <= 120
+        && data.category is string && data.category.size() >= 1 && data.category.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    function isValidStreamHistoryRecord(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'startTime', 'endTime', 'duration', 'destination', 'status', 'recordingUrl', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'title', 'startTime', 'endTime', 'duration', 'destination', 'status', 'recordingUrl', 'createdAt'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128 && data.id.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.startTime is string && data.startTime.size() <= 64
+        && data.endTime is string && data.endTime.size() <= 64
+        && data.duration is string && data.duration.size() <= 32
+        && data.destination is string && data.destination.size() <= 256
+        && data.status is string && data.status.size() <= 32 && data.status in ['Completed', 'Interrupted', 'Failed']
+        && data.recordingUrl is string && data.recordingUrl.size() <= 1024
+        && data.createdAt is timestamp;
+    }
+
+    function isValidPlaylistConfig(data) {
+      return data.keys().hasAll(['userId', 'loopEnabled', 'selectedVideoIds', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'loopEnabled', 'selectedVideoIds', 'createdAt', 'updatedAt'])
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId == request.auth.uid
+        && data.loopEnabled is bool
+        && data.selectedVideoIds is list && data.selectedVideoIds.size() <= 50
+        && (data.selectedVideoIds.size() == 0 || (data.selectedVideoIds[0] is string && data.selectedVideoIds[0].size() <= 128))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidYouTubeOAuthCredential(data) {
+      return data.keys().hasAll(['provider', 'userId', 'channelId', 'channelTitle', 'channelEmail', 'accessToken', 'refreshToken', 'tokenType', 'scopes', 'expiresAt', 'isConnected', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['provider', 'userId', 'channelId', 'channelTitle', 'channelEmail', 'accessToken', 'refreshToken', 'tokenType', 'scopes', 'expiresAt', 'isConnected', 'createdAt', 'updatedAt'])
+        && data.provider is string && data.provider.size() <= 32 && data.provider in ['youtube']
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId == request.auth.uid
+        && data.channelId is string && data.channelId.size() >= 1 && data.channelId.size() <= 128
+        && data.channelTitle is string && data.channelTitle.size() >= 1 && data.channelTitle.size() <= 200
+        && data.channelEmail is string && data.channelEmail.size() >= 3 && data.channelEmail.size() <= 256
+        && data.accessToken is string && data.accessToken.size() <= 2048
+        && data.refreshToken is string && data.refreshToken.size() <= 2048
+        && data.tokenType is string && data.tokenType.size() <= 32 && data.tokenType in ['Bearer']
+        && data.scopes is list && data.scopes.size() >= 1 && data.scopes.size() <= 10
+        && data.scopes[0] is string && data.scopes[0].size() <= 256
+        && data.expiresAt is number && data.expiresAt >= 0
+        && data.isConnected is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // 1. UserProfile Collection (/users/{userId})
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && isOwner(userId);
+      allow list: if false;
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == userId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Update Profile & Preferences
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'avatar', 'emailNotif', 'streamAlerts', 'updatedAt'])
+        );
+
+      allow delete: if false;
+
+      // 2. StreamConfig Subcollection (/users/{userId}/streams/{streamId})
+      match /streams/{streamId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(streamId) && isOwner(userId) && (resource == null || existing().userId == request.auth.uid);
+        allow list: if isSignedIn() && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(streamId)
+          && isOwner(userId)
+          && isValidStreamConfig(incoming())
+          && incoming().id == streamId
+          && incoming().userId == userId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(streamId)
+          && isOwner(userId)
+          && isValidStreamConfig(incoming())
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && userExists(userId)
+          && (
+            // Action: Toggle Live Status
+            incoming().diff(existing()).affectedKeys().hasOnly(['isLive', 'status', 'health', 'duration', 'updatedAt'])
+            ||
+            // Action: Update Stream Configuration
+            incoming().diff(existing()).affectedKeys().hasOnly(['streamName', 'destinationUrl', 'streamKey', 'channelId', 'sourceType', 'resolution', 'fps', 'bitrate', 'audioBitrate', 'isLandscape', 'updatedAt'])
+          );
+
+        allow delete: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(streamId)
+          && isOwner(userId)
+          && existing().userId == request.auth.uid
+          && userExists(userId);
+      }
+
+      // 3. VideoItem Subcollection (/users/{userId}/videos/{videoId})
+      match /videos/{videoId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(videoId) && isOwner(userId) && (resource == null || existing().userId == request.auth.uid);
+        allow list: if isSignedIn() && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(videoId)
+          && isOwner(userId)
+          && isValidVideoItem(incoming())
+          && incoming().id == videoId
+          && incoming().userId == userId
+          && incoming().createdAt == request.time
+          && userExists(userId);
+
+        allow update: if false;
+
+        allow delete: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(videoId)
+          && isOwner(userId)
+          && existing().userId == request.auth.uid
+          && userExists(userId);
+      }
+
+      // 4. UpcomingStream Subcollection (/users/{userId}/upcoming/{upcomingId})
+      match /upcoming/{upcomingId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(upcomingId) && isOwner(userId) && (resource == null || existing().userId == request.auth.uid);
+        allow list: if isSignedIn() && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(upcomingId)
+          && isOwner(userId)
+          && isValidUpcomingStream(incoming())
+          && incoming().id == upcomingId
+          && incoming().userId == userId
+          && incoming().createdAt == request.time
+          && userExists(userId);
+
+        allow update: if false;
+
+        allow delete: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(upcomingId)
+          && isOwner(userId)
+          && existing().userId == request.auth.uid
+          && userExists(userId);
+      }
+
+      // 5. StreamHistoryRecord Subcollection (/users/{userId}/history/{historyId})
+      match /history/{historyId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(historyId) && isOwner(userId) && (resource == null || existing().userId == request.auth.uid);
+        allow list: if isSignedIn() && isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(historyId)
+          && isOwner(userId)
+          && isValidStreamHistoryRecord(incoming())
+          && incoming().id == historyId
+          && incoming().userId == userId
+          && incoming().createdAt == request.time
+          && userExists(userId);
+
+        // Terminal State Locking: History records cannot be updated once finalized
+        allow update: if false;
+
+        allow delete: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(historyId)
+          && isOwner(userId)
+          && existing().userId == request.auth.uid
+          && userExists(userId);
+      }
+
+      // 6. PlaylistConfig Subcollection (/users/{userId}/playlists/{playlistId})
+      match /playlists/{playlistId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(playlistId) && isOwner(userId) && (resource == null || existing().userId == request.auth.uid);
+        allow list: if false;
+
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(playlistId)
+          && isOwner(userId)
+          && isValidPlaylistConfig(incoming())
+          && incoming().userId == userId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(playlistId)
+          && isOwner(userId)
+          && isValidPlaylistConfig(incoming())
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && userExists(userId)
+          && (
+            // Action: Update Playlist & Loop Settings
+            incoming().diff(existing()).affectedKeys().hasOnly(['loopEnabled', 'selectedVideoIds', 'updatedAt'])
+          );
+
+        allow delete: if false;
+      }
+
+      // 7. YouTubeOAuthCredential Subcollection (/users/{userId}/oauth_credentials/{providerId})
+      match /oauth_credentials/{providerId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(providerId) && isOwner(userId) && (resource == null || existing().userId == request.auth.uid);
+        allow list: if false;
+
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(providerId)
+          && isOwner(userId)
+          && isValidYouTubeOAuthCredential(incoming())
+          && incoming().userId == userId
+          && incoming().provider == providerId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && userExists(userId);
+
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(providerId)
+          && isOwner(userId)
+          && isValidYouTubeOAuthCredential(incoming())
+          && incoming().userId == existing().userId
+          && incoming().provider == existing().provider
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && userExists(userId)
+          && (
+            // Action: Refresh or Update YouTube OAuth 2.0 Credentials & Scopes
+            incoming().diff(existing()).affectedKeys().hasOnly(['channelId', 'channelTitle', 'channelEmail', 'accessToken', 'refreshToken', 'tokenType', 'scopes', 'expiresAt', 'isConnected', 'updatedAt'])
+          );
+
+        allow delete: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(providerId)
+          && isOwner(userId)
+          && existing().userId == request.auth.uid
+          && userExists(userId);
+      }
+    }
+  }
+}
+

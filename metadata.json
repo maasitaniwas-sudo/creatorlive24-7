@@ -1,0 +1,6 @@
+{
+  "name": "CreatorLive24/7",
+  "description": "Professional 24/7 live streaming and simulcasting platform with dual stream support, video looping, camera/screen broadcast, and stream key management.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

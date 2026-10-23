@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      (function () {
+        try {
+          var currentFetch = window.fetch ? window.fetch.bind(window) : undefined;
+          try {
+            Object.defineProperty(window, 'fetch', {
+              configurable: true,
+              enumerable: true,
+              get: function () {
+                return currentFetch;
+              },
+              set: function (fn) {
+                if (typeof fn === 'function') {
+                  currentFetch = fn;
+                }
+              }
+            });
+          } catch (_) {}
+          try {
+            if (typeof Window !== 'undefined' && Window.prototype) {
+              Object.defineProperty(Window.prototype, 'fetch', {
+                configurable: true,
+                enumerable: true,
+                get: function () {
+                  return currentFetch;
+                },
+                set: function (fn) {
+                  if (typeof fn === 'function') {
+                    currentFetch = fn;
+                  }
+                }
+              });
+            }
+          } catch (_) {}
+          window.addEventListener(
+            'error',
+            function (event) {
+              var msg = String((event && event.message) || '');
+              var file = String((event && event.filename) || '');
+              if (
+                msg.indexOf('Cannot set property fetch') !== -1 ||
+                file.indexOf('chrome-extension://') !== -1
+              ) {
+                event.stopImmediatePropagation();
+                event.preventDefault();
+                return false;
+              }
+            },
+            true
+          );
+          window.addEventListener(
+            'unhandledrejection',
+            function (event) {
+              var reasonStr = String((event && event.reason && (event.reason.message || event.reason)) || '');
+              if (
+                reasonStr.indexOf('Cannot set property fetch') !== -1 ||
+                reasonStr.indexOf('chrome-extension://') !== -1 ||
+                reasonStr.indexOf('token-service-api-has-not-been-used') !== -1
+              ) {
+                event.stopImmediatePropagation();
+                event.preventDefault();
+                return false;
+              }
+            },
+            true
+          );
+        } catch (_) {}
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CreatorLive24/7 - Your Content. Always On.</title>
+    <meta name="description" content="Professional live streaming platform with dual simultaneous streams, video loop streaming, camera & screen broadcast, and stream key management." />
+    <meta property="og:title" content="CreatorLive24/7 - Your Content. Always On." />
+    <meta property="og:description" content="Professional live streaming platform with dual simultaneous streams, video loop streaming, camera & screen broadcast, and stream key management." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
